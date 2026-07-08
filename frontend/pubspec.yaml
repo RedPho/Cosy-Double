@@ -1,0 +1,29 @@
+name: cosy_double
+description: "Cozy Double - A neurodivergent-friendly body doubling app."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_bloc: ^8.1.3
+  go_router: ^14.0.0
+  get_it: ^7.6.0
+  http: ^1.2.1
+  web_socket_channel: ^2.4.1
+  equatable: ^2.0.5
+  shared_preferences: ^2.2.2
+  flutter_animate: ^4.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
