@@ -94,8 +94,8 @@ async def create_payment_intent(data: PaymentIntentRequest, db: AsyncSession = D
     stmt_item = select(Item).where(Item.id == data.item_id)
     res_item = await db.execute(stmt_item)
     item = res_item.scalar_one_or_none()
-    if not item or not item.is_premium:
-        raise HTTPException(status_code=400, detail="Item not found or is not premium")
+    if not item or (not item.is_premium and (item.price_usd is None or item.price_usd <= 0.0)):
+        raise HTTPException(status_code=400, detail="Item not found or cannot be purchased with USD")
         
     # Check ownership
     stmt_own = select(Inventory).where(and_(Inventory.user_id == current_user.id, Inventory.item_id == item.id))

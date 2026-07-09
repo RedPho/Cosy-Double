@@ -70,3 +70,20 @@ async def login(user_in: UserLogin, db: AsyncSession = Depends(get_db)):
 @router.get("/me", response_model=UserOut)
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+@router.delete("/delete-account", status_code=status.HTTP_200_OK)
+async def delete_account(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    from sqlmodel import delete
+    from backend.app.models import Inventory, Session, Task
+    
+    # Delete dependent data
+    await db.execute(delete(Inventory).where(Inventory.user_id == current_user.id))
+    await db.execute(delete(Task).where(Task.user_id == current_user.id))
+    await db.execute(delete(Session).where(Session.user_id == current_user.id))
+    # Delete user
+    await db.delete(current_user)
+    await db.commit()
+    return {"message": "Account successfully deleted"}
