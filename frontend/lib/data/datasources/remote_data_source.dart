@@ -14,13 +14,24 @@ class RemoteDataSource {
   RemoteDataSource({required this.apiClient});
 
   // Auth Operations
-  Future<Map<String, dynamic>> register(String email, String password) async {
+  Future<Map<String, dynamic>> register(String email, String password, String username) async {
     final response = await apiClient.post('/auth/register', {
       'email': email,
       'password': password,
+      'username': username,
     });
     if (response.statusCode != 201) {
       throw Exception(jsonDecode(response.body)['detail'] ?? 'Registration failed');
+    }
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> loginWithGoogle(String idToken) async {
+    final response = await apiClient.post('/auth/google', {
+      'id_token': idToken,
+    });
+    if (response.statusCode != 200) {
+      throw Exception(jsonDecode(response.body)['detail'] ?? 'Google Login failed');
     }
     return jsonDecode(response.body);
   }

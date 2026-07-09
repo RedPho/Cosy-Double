@@ -9,7 +9,7 @@ class WebSocketManager:
         # Room ID -> Dict of user_id -> User presence info (email, etc.)
         self.room_presence: Dict[int, Dict[int, Dict[str, Any]]] = {}
 
-    async def connect(self, room_id: int, user_id: int, email: str, websocket: WebSocket):
+    async def connect(self, room_id: int, user_id: int, username: str, email: str, websocket: WebSocket):
         await websocket.accept()
         
         if room_id not in self.active_connections:
@@ -20,6 +20,7 @@ class WebSocketManager:
         self.active_connections[room_id].append(websocket)
         self.room_presence[room_id][user_id] = {
             "user_id": user_id,
+            "username": username,
             "email": email,
             "joined_at": __import__('datetime').datetime.utcnow().isoformat() + "Z",
             "current_task": "",

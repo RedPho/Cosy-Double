@@ -188,7 +188,8 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
       itemBuilder: (context, index) {
         final user = users[index];
         final email = user['email'] ?? 'User';
-        final initial = email.isNotEmpty ? email[0].toUpperCase() : '?';
+        final username = user['username']?.toString() ?? (email.isNotEmpty ? email.split('@')[0] : 'User');
+        final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
         final userId = user['user_id'];
         
         // Find recent interactions for this user
@@ -214,7 +215,7 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
             ),
             const SizedBox(height: 8),
             Text(
-              email.split('@')[0], // Short name
+              username, // Short name
               style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface),
               overflow: TextOverflow.ellipsis,
             ),

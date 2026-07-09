@@ -15,12 +15,15 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _isSignUp = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _usernameController.dispose();
     super.dispose();
   }
 
@@ -63,7 +66,95 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
+                      
+                      // Tab Selector between Login and Sign Up
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => setState(() => _isSignUp = false),
+                              child: Container(
+                                alignment: Alignment.center,
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    bottom: BorderSide(
+                                      color: !_isSignUp ? cs.primary : Colors.transparent,
+                                      width: 2,
+                                    ),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Login',
+                                  style: TextStyle(
+                                    fontWeight: !_isSignUp ? FontWeight.bold : FontWeight.normal,
+                                    color: !_isSignUp ? cs.primary : cs.onSurface.withOpacity(0.6),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => setState(() => _isSignUp = true),
+                              child: Container(
+                                alignment: Alignment.center,
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    bottom: BorderSide(
+                                      color: _isSignUp ? cs.primary : Colors.transparent,
+                                      width: 2,
+                                    ),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Sign Up',
+                                  style: TextStyle(
+                                    fontWeight: _isSignUp ? FontWeight.bold : FontWeight.normal,
+                                    color: _isSignUp ? cs.primary : cs.onSurface.withOpacity(0.6),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      if (_isSignUp) ...[
+                        TextFormField(
+                          controller: _usernameController,
+                          decoration: InputDecoration(
+                            labelText: 'Username',
+                            filled: true,
+                            fillColor: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.4),
+                            border: OutlineInputBorder(
+                              borderRadius: CozyTheme.radiusMedium,
+                              borderSide: BorderSide(color: cs.outline),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: CozyTheme.radiusMedium,
+                              borderSide: BorderSide(color: cs.outline),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: CozyTheme.radiusMedium,
+                              borderSide: BorderSide(color: cs.primary, width: 2),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter a username';
+                            }
+                            if (value.length < 3) {
+                              return 'Username must be at least 3 characters';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                       
                       // Email Field
                       TextFormField(
@@ -129,22 +220,24 @@ class _LoginScreenState extends State<LoginScreen> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 6),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () => _showForgotPasswordDialog(context),
-                          style: TextButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            minimumSize: const Size(50, 30),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: Text(
-                            'Forgot Password?',
-                            style: TextStyle(color: cs.primary, fontSize: 13, fontWeight: FontWeight.bold),
+                      if (!_isSignUp) ...[
+                        const SizedBox(height: 6),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () => _showForgotPasswordDialog(context),
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(50, 30),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: Text(
+                              'Forgot Password?',
+                              style: TextStyle(color: cs.primary, fontSize: 13, fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                       const SizedBox(height: 18),
                       
                       // Error State
@@ -179,29 +272,38 @@ class _LoginScreenState extends State<LoginScreen> {
                               FilledButton(
                                 onPressed: () {
                                   if (_formKey.currentState!.validate()) {
-                                    context.read<AuthBloc>().add(
-                                          LoginSubmitted(
-                                            email: _emailController.text,
-                                            password: _passwordController.text,
-                                          ),
-                                        );
+                                    if (_isSignUp) {
+                                      context.read<AuthBloc>().add(
+                                            RegisterSubmitted(
+                                              email: _emailController.text.trim(),
+                                              password: _passwordController.text,
+                                              username: _usernameController.text.trim(),
+                                            ),
+                                          );
+                                    } else {
+                                      context.read<AuthBloc>().add(
+                                            LoginSubmitted(
+                                              email: _emailController.text.trim(),
+                                              password: _passwordController.text,
+                                            ),
+                                          );
+                                    }
                                   }
                                 },
-                                child: const Text('Enter Oasis'),
+                                child: Text(_isSignUp ? 'Create Account' : 'Enter Oasis'),
                               ),
                               const SizedBox(height: 12),
-                              OutlinedButton(
+                              // Google Sign In Button
+                              OutlinedButton.icon(
+                                icon: const Icon(Icons.login), // Simple login icon as generic placeholder
+                                label: const Text('Continue with Google'),
                                 onPressed: () {
-                                  if (_formKey.currentState!.validate()) {
-                                    context.read<AuthBloc>().add(
-                                          RegisterSubmitted(
-                                            email: _emailController.text,
-                                            password: _passwordController.text,
-                                          ),
-                                        );
-                                  }
+                                  context.read<AuthBloc>().add(GoogleSignInTriggered());
                                 },
-                                child: const Text('Sign Up'),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: CozyTheme.radiusMedium),
+                                ),
                               ),
                             ],
                           );

@@ -6,7 +6,8 @@ from datetime import datetime
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     email: str = Field(unique=True, index=True)
-    hashed_password: str
+    username: str = Field(unique=True, index=True)
+    hashed_password: Optional[str] = Field(default=None, nullable=True)
     leaves_balance: int = Field(default=0)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     

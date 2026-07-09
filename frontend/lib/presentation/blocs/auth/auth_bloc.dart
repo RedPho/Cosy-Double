@@ -1,3 +1,4 @@
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/repositories/auth_repository.dart';
 import 'auth_event.dart';
@@ -10,6 +11,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AppStarted>(_onAppStarted);
     on<LoginSubmitted>(_onLoginSubmitted);
     on<RegisterSubmitted>(_onRegisterSubmitted);
+    on<GoogleSignInTriggered>(_onGoogleSignInTriggered);
     on<LoggedOut>(_onLoggedOut);
     on<DeleteAccountRequested>(_onDeleteAccountRequested);
   }
@@ -44,8 +46,34 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _onRegisterSubmitted(RegisterSubmitted event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
     try {
-      await authRepository.register(event.email, event.password);
+      await authRepository.register(event.email, event.password, event.username);
       await authRepository.login(event.email, event.password);
+      final user = await authRepository.getMe();
+      emit(Authenticated(user: user));
+    } catch (e) {
+      emit(AuthError(message: e.toString()));
+      emit(Unauthenticated());
+    }
+  }
+
+  Future<void> _onGoogleSignInTriggered(GoogleSignInTriggered event, Emitter<AuthState> emit) async {
+    emit(AuthLoading());
+    try {
+      final googleSignIn = GoogleSignIn(
+        scopes: ['email'],
+      );
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      if (googleUser == null) {
+        emit(Unauthenticated());
+        return;
+      }
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final String? idToken = googleAuth.idToken;
+      if (idToken == null) {
+        throw Exception("Failed to retrieve Google ID Token");
+      }
+      
+      await authRepository.loginWithGoogle(idToken);
       final user = await authRepository.getMe();
       emit(Authenticated(user: user));
     } catch (e) {

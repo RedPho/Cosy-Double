@@ -22,12 +22,15 @@ class LoginSubmitted extends AuthEvent {
 class RegisterSubmitted extends AuthEvent {
   final String email;
   final String password;
+  final String username;
 
-  const RegisterSubmitted({required this.email, required this.password});
+  const RegisterSubmitted({required this.email, required this.password, required this.username});
 
   @override
-  List<Object?> get props => [email, password];
+  List<Object?> get props => [email, password, username];
 }
+
+class GoogleSignInTriggered extends AuthEvent {}
 
 class LoggedOut extends AuthEvent {}
 

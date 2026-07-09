@@ -9,12 +9,13 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({required this.remoteDataSource});
 
   @override
-  Future<User> register(String email, String password) async {
-    final data = await remoteDataSource.register(email, password);
+  Future<User> register(String email, String password, String username) async {
+    final data = await remoteDataSource.register(email, password, username);
     // Standard register returns User representation
     return User(
       id: data['id'],
       email: data['email'],
+      username: data['username'],
       leavesBalance: data['leaves_balance'],
     );
   }
@@ -22,6 +23,18 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<String> login(String email, String password) async {
     final data = await remoteDataSource.login(email, password);
+    final token = data['access_token'];
+    
+    // Persist token in shared preferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('auth_token', token);
+    
+    return token;
+  }
+
+  @override
+  Future<String> loginWithGoogle(String idToken) async {
+    final data = await remoteDataSource.loginWithGoogle(idToken);
     final token = data['access_token'];
     
     // Persist token in shared preferences

@@ -293,7 +293,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: int, token: str = Qu
         return
         
     # Connect
-    await manager.connect(room_id, user.id, user.email, websocket)
+    await manager.connect(room_id, user.id, user.username, user.email, websocket)
     await _update_user_task_stats(db, room_id, user.id)
     
     try:
