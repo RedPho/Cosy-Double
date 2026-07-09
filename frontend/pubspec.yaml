@@ -18,7 +18,6 @@ dependencies:
   equatable: ^2.0.5
   shared_preferences: ^2.2.2
   flutter_animate: ^4.5.0
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
