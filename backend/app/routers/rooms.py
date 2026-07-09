@@ -42,6 +42,7 @@ class TaskOut(BaseModel):
     session_id: int
     title: str
     is_completed: bool
+    is_active: bool = False
 
 class SessionTerminate(BaseModel):
     session_id: int
@@ -79,8 +80,50 @@ async def get_rooms(db: AsyncSession = Depends(get_db)):
         )
     return rooms_with_presence
 
+async def _update_user_task_stats(db: AsyncSession, room_id: int, user_id: int):
+    # Find active session for user in room
+    sess_stmt = select(Session).where(
+        and_(Session.user_id == user_id, Session.room_id == room_id, Session.ended_at == None)
+    ).order_by(Session.id.desc())
+    sess_res = await db.execute(sess_stmt)
+    session = sess_res.scalars().first()
+    
+    current_task_title = ""
+    completed_count = 0
+    total_count = 0
+    
+    if session:
+        # Get all tasks for this session
+        task_stmt = select(Task).where(Task.session_id == session.id).order_by(Task.id.asc())
+        task_res = await db.execute(task_stmt)
+        tasks = task_res.scalars().all()
+        
+        total_count = len(tasks)
+        completed_count = sum(1 for t in tasks if t.is_completed)
+        
+        if total_count > 0:
+            if completed_count == total_count:
+                current_task_title = "All caught up! 🍃"
+            else:
+                uncompleted = [t for t in tasks if not t.is_completed]
+                active_task = next((t for t in uncompleted if t.is_active), None)
+                if active_task:
+                    current_task_title = active_task.title
+                elif uncompleted:
+                    current_task_title = uncompleted[0].title
+                    
+    await manager.update_presence_tasks(room_id, user_id, current_task_title, completed_count, total_count)
+
 @router.post("/rooms/session/start", response_model=SessionOut)
 async def start_session(data: SessionStart, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Auto-terminate any existing open sessions to prevent ghost sessions
+    stmt = select(Session).where(and_(Session.user_id == current_user.id, Session.ended_at == None))
+    res = await db.execute(stmt)
+    open_sessions = res.scalars().all()
+    for osess in open_sessions:
+        osess.ended_at = datetime.utcnow()
+        db.add(osess)
+        
     # Create new session
     session = Session(
         user_id=current_user.id,
@@ -112,7 +155,7 @@ async def add_task(data: TaskCreate, db: AsyncSession = Depends(get_db), current
     await db.refresh(task)
     
     # Broadcast current task via WebSocket presence list
-    await manager.update_presence_task(session.room_id, current_user.id, task.title)
+    await _update_user_task_stats(db, session.room_id, current_user.id)
     
     return task
 
@@ -135,7 +178,44 @@ async def complete_task(task_id: int, db: AsyncSession = Depends(get_db), curren
     sess_res = await db.execute(sess_stmt)
     session = sess_res.scalar_one_or_none()
     if session:
-        await manager.update_presence_task(session.room_id, current_user.id, f"✅ {task.title}")
+        await _update_user_task_stats(db, session.room_id, current_user.id)
+        
+    return task
+
+@router.put("/rooms/session/tasks/{task_id}/activate", response_model=TaskOut)
+async def activate_task(task_id: int, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Find the requested task
+    stmt = select(Task).where(and_(Task.id == task_id, Task.user_id == current_user.id))
+    res = await db.execute(stmt)
+    task = res.scalar_one_or_none()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+        
+    if task.is_completed:
+        raise HTTPException(status_code=400, detail="Cannot activate a completed task")
+        
+    # Get all tasks for this session
+    session_tasks_stmt = select(Task).where(and_(Task.session_id == task.session_id, Task.user_id == current_user.id))
+    session_tasks_res = await db.execute(session_tasks_stmt)
+    session_tasks = session_tasks_res.scalars().all()
+    
+    # Set all other tasks to inactive, and this one to active
+    for t in session_tasks:
+        if t.id == task.id:
+            t.is_active = True
+        else:
+            t.is_active = False
+        db.add(t)
+        
+    await db.commit()
+    await db.refresh(task)
+    
+    # Broadcast update
+    sess_stmt = select(Session).where(Session.id == task.session_id)
+    sess_res = await db.execute(sess_stmt)
+    session = sess_res.scalar_one_or_none()
+    if session:
+        await _update_user_task_stats(db, session.room_id, current_user.id)
         
     return task
 
@@ -212,37 +292,9 @@ async def websocket_endpoint(websocket: WebSocket, room_id: int, token: str = Qu
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
         
-    # Connect and initialize with their current focus task if they have one
-    sess_stmt = select(Session).where(
-        and_(
-            Session.user_id == user.id,
-            Session.room_id == room_id,
-            Session.ended_at == None
-        )
-    ).order_by(Session.id.desc())
-    sess_res = await db.execute(sess_stmt)
-    session = sess_res.scalars().first()
-    
-    current_task_title = ""
-    if session:
-        task_stmt = select(Task).where(
-            and_(
-                Task.session_id == session.id,
-                Task.is_completed == False
-            )
-        ).order_by(Task.id.desc())
-        task_res = await db.execute(task_stmt)
-        latest_task = task_res.scalars().first()
-        if latest_task:
-            current_task_title = latest_task.title
-            
     # Connect
     await manager.connect(room_id, user.id, user.email, websocket)
-    if current_task_title:
-        # Save task to presence list manually after connect
-        manager.room_presence[room_id][user.id]["current_task"] = current_task_title
-        # Broadcast initial updated presence list to room
-        await manager.broadcast_presence(room_id)
+    await _update_user_task_stats(db, room_id, user.id)
     
     try:
         while True:

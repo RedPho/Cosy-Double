@@ -47,6 +47,7 @@ class Task(SQLModel, table=True):
     user_id: int = Field(foreign_key="user.id")
     title: str
     is_completed: bool = Field(default=False)
+    is_active: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     completed_at: Optional[datetime] = None
     

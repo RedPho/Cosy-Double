@@ -3,7 +3,7 @@ from pydantic import BaseModel, EmailStr
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.app.db import get_db
-from backend.app.models import User
+from backend.app.models import User, Item, Inventory
 from backend.app.auth import hash_password, verify_password, create_access_token, get_current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -44,6 +44,23 @@ async def register(user_in: UserRegister, db: AsyncSession = Depends(get_db)):
         leaves_balance=10  # Give 10 initial welcome leaves!
     )
     db.add(new_user)
+    await db.flush()  # To get new_user.id
+    
+    # Assign default background naturally
+    stmt_item = select(Item).where(Item.image_url == "sunrise_studio")
+    res_item = await db.execute(stmt_item)
+    default_item = res_item.scalar_one_or_none()
+    
+    if default_item:
+        new_inv = Inventory(
+            user_id=new_user.id,
+            item_id=default_item.id,
+            is_placed=True,
+            x_pos=0.0,
+            y_pos=0.0
+        )
+        db.add(new_inv)
+        
     await db.commit()
     await db.refresh(new_user)
     return new_user

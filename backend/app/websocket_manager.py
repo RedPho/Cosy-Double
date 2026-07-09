@@ -21,8 +21,10 @@ class WebSocketManager:
         self.room_presence[room_id][user_id] = {
             "user_id": user_id,
             "email": email,
-            "joined_at": str(websocket.created_at if hasattr(websocket, 'created_at') else ""),
-            "current_task": ""
+            "joined_at": __import__('datetime').datetime.utcnow().isoformat() + "Z",
+            "current_task": "",
+            "completed_tasks": 0,
+            "total_tasks": 0
         }
         
         # Broadcast the updated presence list to everyone in the room
@@ -61,9 +63,11 @@ class WebSocketManager:
             "users": presence_users
         })
 
-    async def update_presence_task(self, room_id: int, user_id: int, task_title: str):
+    async def update_presence_tasks(self, room_id: int, user_id: int, task_title: str, completed_tasks: int, total_tasks: int):
         if room_id in self.room_presence and user_id in self.room_presence[room_id]:
             self.room_presence[room_id][user_id]["current_task"] = task_title
+            self.room_presence[room_id][user_id]["completed_tasks"] = completed_tasks
+            self.room_presence[room_id][user_id]["total_tasks"] = total_tasks
             await self.broadcast_presence(room_id)
 
 manager = WebSocketManager()

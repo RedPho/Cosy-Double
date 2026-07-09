@@ -51,21 +51,14 @@ async def on_startup():
                 Item(name="The Golden Hour", cost_leaves=15, price_usd=0.0, is_premium=False, image_url="golden_hour", category="theme"),
                 Item(name="The Matcha Morning", cost_leaves=20, price_usd=0.0, is_premium=False, image_url="matcha_morning", category="theme"),
                 Item(name="The Rainy Window", cost_leaves=25, price_usd=0.0, is_premium=False, image_url="rainy_window", category="theme"),
-                # T2: Dual currency (🍃 OR $)
-                Item(name="The Deep Work Zone", cost_leaves=30, price_usd=0.99, is_premium=False, image_url="deep_work_zone", category="theme"),
-                Item(name="The Dusty Vinyl", cost_leaves=35, price_usd=0.99, is_premium=False, image_url="dusty_vinyl", category="theme"),
-                Item(name="The Botanical Library", cost_leaves=40, price_usd=0.99, is_premium=False, image_url="botanical_library", category="theme"),
-                Item(name="The Library Archive", cost_leaves=45, price_usd=1.49, is_premium=False, image_url="library_archive", category="theme"),
-                Item(name="The Lavender Fog", cost_leaves=50, price_usd=1.49, is_premium=False, image_url="lavender_fog", category="theme"),
-                Item(name="The Arctic Cabin", cost_leaves=60, price_usd=1.49, is_premium=False, image_url="arctic_cabin", category="theme"),
-                # T3: Premium USD-only
-                Item(name="The Rose Quartz", cost_leaves=0, price_usd=1.49, is_premium=True, image_url="rose_quartz", category="theme"),
-                Item(name="The Moonlight Garden", cost_leaves=0, price_usd=1.99, is_premium=True, image_url="moonlight_garden", category="theme"),
-                Item(name="The Desert Oasis", cost_leaves=0, price_usd=2.99, is_premium=True, image_url="desert_oasis", category="theme"),
-                Item(name="The Neon Tokyo", cost_leaves=0, price_usd=3.99, is_premium=True, image_url="neon_tokyo", category="theme"),
-                Item(name="The Midnight Ink", cost_leaves=0, price_usd=4.99, is_premium=True, image_url="midnight_ink", category="theme"),
+                # T2: Mid-tier (leaves only now)
+                Item(name="The Deep Work Zone", cost_leaves=30, price_usd=0.0, is_premium=False, image_url="deep_work_zone", category="theme"),
+                Item(name="The Dusty Vinyl", cost_leaves=35, price_usd=0.0, is_premium=False, image_url="dusty_vinyl", category="theme"),
+                Item(name="The Botanical Library", cost_leaves=40, price_usd=0.0, is_premium=False, image_url="botanical_library", category="theme"),
+                Item(name="The Library Archive", cost_leaves=45, price_usd=0.0, is_premium=False, image_url="library_archive", category="theme"),
+                Item(name="The Lavender Fog", cost_leaves=50, price_usd=0.0, is_premium=False, image_url="lavender_fog", category="theme"),
+                Item(name="The Arctic Cabin", cost_leaves=60, price_usd=0.0, is_premium=False, image_url="arctic_cabin", category="theme"),
             ]
             session.add_all(default_items)
-            print("Seeded 15 curated Color Themes (T0 free / T1 leaves / T2 dual / T3 premium).")
-
+            print("Seeded 10 curated Color Themes for Version 1 (Leaves only).")
         await session.commit()
