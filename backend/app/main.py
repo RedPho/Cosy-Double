@@ -35,12 +35,10 @@ async def on_startup():
         rooms_res = await session.execute(room_stmt)
         if not rooms_res.scalars().all():
             default_rooms = [
-                Room(name="Deep Work Oasis", category="Deep Work"),
-                Room(name="Cozy Library", category="Body Doubling"),
-                Room(name="Lo-fi Corner", category="Casual"),
+                Room(name="The Focus Room", category="Focus"),
             ]
             session.add_all(default_rooms)
-            print("Seeded default rooms.")
+            print("Seeded default room.")
 
         # Seed Shop Items if empty
         item_stmt = select(Item)
