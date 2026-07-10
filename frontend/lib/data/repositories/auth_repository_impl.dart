@@ -9,39 +9,26 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({required this.remoteDataSource});
 
   @override
-  Future<User> register(String email, String password, String username) async {
-    final data = await remoteDataSource.register(email, password, username);
-    // Standard register returns User representation
+  Future<String> loginAsGuest(String? username) async {
+    final data = await remoteDataSource.loginAsGuest(username);
+    final token = data['access_token'];
+    
+    // Persist token in shared preferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('auth_token', token);
+    
+    return token;
+  }
+
+  @override
+  Future<User> updateNickname(String username) async {
+    final data = await remoteDataSource.updateNickname(username);
     return User(
       id: data['id'],
       email: data['email'],
       username: data['username'],
       leavesBalance: data['leaves_balance'],
     );
-  }
-
-  @override
-  Future<String> login(String email, String password) async {
-    final data = await remoteDataSource.login(email, password);
-    final token = data['access_token'];
-    
-    // Persist token in shared preferences
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('auth_token', token);
-    
-    return token;
-  }
-
-  @override
-  Future<String> loginWithGoogle(String idToken) async {
-    final data = await remoteDataSource.loginWithGoogle(idToken);
-    final token = data['access_token'];
-    
-    // Persist token in shared preferences
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('auth_token', token);
-    
-    return token;
   }
 
   @override
@@ -59,12 +46,5 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<bool> checkAuthStatus() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.containsKey('auth_token');
-  }
-
-  @override
-  Future<void> deleteAccount() async {
-    await remoteDataSource.deleteAccount();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('auth_token');
   }
 }

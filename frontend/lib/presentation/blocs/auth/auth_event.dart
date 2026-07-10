@@ -9,30 +9,23 @@ abstract class AuthEvent extends Equatable {
 
 class AppStarted extends AuthEvent {}
 
-class LoginSubmitted extends AuthEvent {
-  final String email;
-  final String password;
-
-  const LoginSubmitted({required this.email, required this.password});
-
-  @override
-  List<Object?> get props => [email, password];
-}
-
-class RegisterSubmitted extends AuthEvent {
-  final String email;
-  final String password;
+class UpdateNicknameRequested extends AuthEvent {
   final String username;
 
-  const RegisterSubmitted({required this.email, required this.password, required this.username});
+  const UpdateNicknameRequested({required this.username});
 
   @override
-  List<Object?> get props => [email, password, username];
+  List<Object?> get props => [username];
 }
-
-class GoogleSignInTriggered extends AuthEvent {}
 
 class LoggedOut extends AuthEvent {}
 
-class DeleteAccountRequested extends AuthEvent {}
+class LoginAsGuestRequested extends AuthEvent {
+  final String? username;
+
+  const LoginAsGuestRequested({this.username});
+
+  @override
+  List<Object?> get props => [username];
+}
 

@@ -5,7 +5,7 @@ from datetime import datetime
 # User model
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    email: str = Field(unique=True, index=True)
+    email: Optional[str] = Field(default=None, unique=True, index=True, nullable=True)
     username: str = Field(unique=True, index=True)
     hashed_password: Optional[str] = Field(default=None, nullable=True)
     leaves_balance: int = Field(default=0)

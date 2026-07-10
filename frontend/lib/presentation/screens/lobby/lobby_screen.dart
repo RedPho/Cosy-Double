@@ -47,6 +47,11 @@ class _LobbyScreenState extends State<LobbyScreen> {
             ],
           ),
           actions: [
+            IconButton(
+              icon: const Icon(Icons.coffee, color: Colors.brown),
+              tooltip: 'Buy me a coffee',
+              onPressed: () => _showSupportDialog(context),
+            ),
             BlocBuilder<AuthBloc, AuthState>(
               builder: (context, authState) {
                 int leaves = 0;
@@ -71,8 +76,8 @@ class _LobbyScreenState extends State<LobbyScreen> {
               onSelected: (value) {
                 if (value == 'logout') {
                   context.read<AuthBloc>().add(LoggedOut());
-                } else if (value == 'delete_account') {
-                  _showDeleteAccountDialog(context);
+                } else if (value == 'change_nickname') {
+                  _showChangeNicknameDialog(context);
                 } else if (value == 'privacy') {
                   _showPrivacyPolicyDialog(context);
                 } else if (value == 'terms') {
@@ -90,8 +95,8 @@ class _LobbyScreenState extends State<LobbyScreen> {
                 ),
                 const PopupMenuDivider(),
                 const PopupMenuItem(
-                  value: 'delete_account',
-                  child: Row(children: [Icon(Icons.delete_forever, color: Colors.red, size: 20), SizedBox(width: 8), Text('Delete Account', style: TextStyle(color: Colors.red))]),
+                  value: 'change_nickname',
+                  child: Row(children: [Icon(Icons.edit, size: 20), SizedBox(width: 8), Text('Change Nickname')]),
                 ),
                 const PopupMenuItem(
                   value: 'logout',
@@ -322,16 +327,25 @@ class _LobbyScreenState extends State<LobbyScreen> {
     );
   }
 
-  void _showDeleteAccountDialog(BuildContext context) {
+  void _showChangeNicknameDialog(BuildContext context) {
+    final state = context.read<AuthBloc>().state;
+    String currentName = '';
+    if (state is Authenticated) {
+      currentName = state.user.username;
+    }
+    final nameController = TextEditingController(text: currentName);
     showDialog(
       context: context,
       builder: (BuildContext ctx) {
+        final cs = Theme.of(context).colorScheme;
         return AlertDialog(
-          title: const Text('Delete Account?'),
-          content: const Text(
-            'Are you absolutely sure? This will delete all your focus sessions, '
-            'tasks, leaf balances, and unlocked themes permanently.\n\n'
-            'This action is irreversible.',
+          title: const Text('Change Nickname'),
+          content: TextField(
+            controller: nameController,
+            decoration: InputDecoration(
+              labelText: 'Nickname',
+              border: OutlineInputBorder(borderRadius: CozyTheme.radiusMedium),
+            ),
           ),
           actions: [
             TextButton(
@@ -340,10 +354,13 @@ class _LobbyScreenState extends State<LobbyScreen> {
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(ctx).pop();
-                context.read<AuthBloc>().add(DeleteAccountRequested());
+                final newName = nameController.text.trim();
+                if (newName.isNotEmpty) {
+                  context.read<AuthBloc>().add(UpdateNicknameRequested(username: newName));
+                  Navigator.of(ctx).pop();
+                }
               },
-              child: const Text('Delete Permanently', style: TextStyle(color: Colors.red)),
+              child: Text('Save', style: TextStyle(color: cs.primary, fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -404,6 +421,43 @@ class _LobbyScreenState extends State<LobbyScreen> {
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
               child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showSupportDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext ctx) {
+        return AlertDialog(
+          title: const Text('Support Cozy Double ☕'),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Cozy Double is run entirely on voluntary donations to cover server hosting costs.\n\n'
+                'If you enjoy using the app to focus, please consider buying us a coffee!',
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Close'),
+            ),
+            FilledButton.icon(
+              icon: const Icon(Icons.coffee),
+              label: const Text('Buy me a coffee'),
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Thank you so much for your support! ☕ (Simulation)')),
+                );
+              },
             ),
           ],
         );

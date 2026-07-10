@@ -1,4 +1,3 @@
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/repositories/auth_repository.dart';
 import 'auth_event.dart';
@@ -9,11 +8,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   AuthBloc({required this.authRepository}) : super(AuthInitial()) {
     on<AppStarted>(_onAppStarted);
-    on<LoginSubmitted>(_onLoginSubmitted);
-    on<RegisterSubmitted>(_onRegisterSubmitted);
-    on<GoogleSignInTriggered>(_onGoogleSignInTriggered);
+    on<LoginAsGuestRequested>(_onLoginAsGuestRequested);
+    on<UpdateNicknameRequested>(_onUpdateNicknameRequested);
     on<LoggedOut>(_onLoggedOut);
-    on<DeleteAccountRequested>(_onDeleteAccountRequested);
+  }
+
+  Future<void> _onLoginAsGuestRequested(LoginAsGuestRequested event, Emitter<AuthState> emit) async {
+    emit(AuthLoading());
+    try {
+      await authRepository.loginAsGuest(event.username);
+      final user = await authRepository.getMe();
+      emit(Authenticated(user: user));
+    } catch (e) {
+      emit(AuthError(message: e.toString()));
+      emit(Unauthenticated());
+    }
   }
 
   Future<void> _onAppStarted(AppStarted event, Emitter<AuthState> emit) async {
@@ -31,54 +40,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  Future<void> _onLoginSubmitted(LoginSubmitted event, Emitter<AuthState> emit) async {
-    emit(AuthLoading());
-    try {
-      await authRepository.login(event.email, event.password);
-      final user = await authRepository.getMe();
-      emit(Authenticated(user: user));
-    } catch (e) {
-      emit(AuthError(message: e.toString()));
-      emit(Unauthenticated());
-    }
-  }
-
-  Future<void> _onRegisterSubmitted(RegisterSubmitted event, Emitter<AuthState> emit) async {
-    emit(AuthLoading());
-    try {
-      await authRepository.register(event.email, event.password, event.username);
-      await authRepository.login(event.email, event.password);
-      final user = await authRepository.getMe();
-      emit(Authenticated(user: user));
-    } catch (e) {
-      emit(AuthError(message: e.toString()));
-      emit(Unauthenticated());
-    }
-  }
-
-  Future<void> _onGoogleSignInTriggered(GoogleSignInTriggered event, Emitter<AuthState> emit) async {
-    emit(AuthLoading());
-    try {
-      final googleSignIn = GoogleSignIn(
-        scopes: ['email'],
-      );
-      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-      if (googleUser == null) {
-        emit(Unauthenticated());
-        return;
+  Future<void> _onUpdateNicknameRequested(UpdateNicknameRequested event, Emitter<AuthState> emit) async {
+    final currentState = state;
+    if (currentState is Authenticated) {
+      emit(AuthLoading());
+      try {
+        final updatedUser = await authRepository.updateNickname(event.username);
+        emit(Authenticated(user: updatedUser));
+      } catch (e) {
+        emit(AuthError(message: e.toString()));
+        emit(currentState); // Fallback to current authenticated state
       }
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final String? idToken = googleAuth.idToken;
-      if (idToken == null) {
-        throw Exception("Failed to retrieve Google ID Token");
-      }
-      
-      await authRepository.loginWithGoogle(idToken);
-      final user = await authRepository.getMe();
-      emit(Authenticated(user: user));
-    } catch (e) {
-      emit(AuthError(message: e.toString()));
-      emit(Unauthenticated());
     }
   }
 
@@ -89,16 +61,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(Unauthenticated());
     } catch (e) {
       emit(Unauthenticated());
-    }
-  }
-
-  Future<void> _onDeleteAccountRequested(DeleteAccountRequested event, Emitter<AuthState> emit) async {
-    emit(AuthLoading());
-    try {
-      await authRepository.deleteAccount();
-      emit(Unauthenticated());
-    } catch (e) {
-      emit(AuthError(message: e.toString()));
     }
   }
 }

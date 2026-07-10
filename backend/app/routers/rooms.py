@@ -276,8 +276,8 @@ async def websocket_endpoint(websocket: WebSocket, room_id: int, token: str = Qu
     # Validate token
     try:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
+        sub: str = payload.get("sub")
+        if sub is None:
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
     except Exception:
@@ -285,7 +285,13 @@ async def websocket_endpoint(websocket: WebSocket, room_id: int, token: str = Qu
         return
         
     # Get user
-    stmt = select(User).where(User.email == email)
+    try:
+        user_id = int(sub)
+        stmt = select(User).where(User.id == user_id)
+    except ValueError:
+        # Fallback for legacy email sub
+        stmt = select(User).where(User.email == sub)
+        
     res = await db.execute(stmt)
     user = res.scalar_one_or_none()
     if not user:

@@ -43,13 +43,18 @@ async def get_current_user(token: Optional[str] = Depends(oauth2_scheme), db: As
         
     try:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
+        sub: str = payload.get("sub")
+        if sub is None:
             raise credentials_exception
     except Exception:
         raise credentials_exception
         
-    statement = select(User).where(User.email == email)
+    try:
+        user_id = int(sub)
+        statement = select(User).where(User.id == user_id)
+    except ValueError:
+        statement = select(User).where(User.email == sub)
+        
     result = await db.execute(statement)
     user = result.scalar_one_or_none()
     if user is None:
